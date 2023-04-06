@@ -73,7 +73,6 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t *c) {
   // Serialize inputs
   _rpc_buff.write_int32(a);
   _rpc_buff.write_int32(b);
-  _rpc_buff.write_int32(c);
 
   // RPC call
   rpc_send_msg(&_rpc_buff);
