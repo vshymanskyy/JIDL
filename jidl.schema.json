@@ -1,11 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
 
-  "title": "JIDL",
+  "title":       "JIDL",
   "description": "JSON-based Interface Definition Language",
-  "version": "0.1.0",
-  "author": "Volodymyr Shymanskyy",
-  "license": "Apache-2.0",
+  "version":     "0.1.0",
+  "author":      "Volodymyr Shymanskyy",
+  "license":     "Apache-2.0",
 
   "type": "object",
   "properties": {
@@ -18,7 +18,7 @@
     "types": {
       "type": "object",
       "patternProperties": {
-        "^[A-Za-z_][A-Za-z0-9_]*$": {
+        "^[A-Za-z][A-Za-z0-9_]*$": {
           "oneOf": [
             { "type": "string" },
             {
@@ -86,7 +86,7 @@
     "interfaces": {
       "type": "object",
       "patternProperties": {
-        "^[A-Za-z_][A-Za-z0-9_]*$": {
+        "^[A-Za-z][A-Za-z0-9_]*$": {
           "title": "Interface",
           "type": "object",
           "properties": {
@@ -94,7 +94,7 @@
             "@doc": { "type": "string"  }
           },
           "patternProperties": {
-            "^[A-Za-z_][A-Za-z0-9_]*$": {
+            "^[A-Za-z][A-Za-z0-9_]*$": {
               "title": "Function",
               "type": "object",
               "properties": {
