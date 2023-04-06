@@ -6,6 +6,8 @@ This is **Jiddle** - a `JSON`-based, simple and extensible `Interface Definition
 - [Example IDLs](./examples)
 - [JSON Schema](./jidl.schema.json)
 
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct-single.svg)](https://stand-with-ukraine.pp.ua)
+
 ## Rationale
 
 A JSON-based Interface Definition Language (IDL) is a handy way to describe and communicate the structure of an application's interfaces, especially when it comes to Remote Procedure Calls (RPC). Using a JSON-based IDL offers some cool perks for developers:
