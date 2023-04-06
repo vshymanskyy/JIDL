@@ -12,7 +12,18 @@
 - `String` - string
 - `Binary` - fixed-size array of bytes
 
-### Type definitions
+### Type aliases
+
+You can define type aliases, i.e. it may be useful to specify common Integer/Float types for your module:
+
+```json
+  "types": {
+    "Integer":  "Int64",
+    "Float":    "Float64"
+  }
+```
+
+### Composite types
 
 `TODO`
 
