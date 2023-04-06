@@ -12,6 +12,77 @@
     "module":       { "type": "string" },
     "@output_dir":  { "type": "string" },
     "@doc":         { "type": "string" },
+    "@author":      { "type": "string" },
+    "@date":        { "type": "string" },
+
+    "types": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z_][A-Za-z0-9_]*$": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["struct"] },
+                "@doc": { "type": "string" },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "type": { "type": "string" }
+                    },
+                    "required": ["name", "type"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": ["type"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["enum"] },
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "oneOf": [
+                          { "type": "number" },
+                          { "type": "string" },
+                          { "type": "boolean" }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "required": ["type", "items"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["array"] },
+                "of": { "type": "string" }
+              },
+              "required": ["type", "of"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+
     "interfaces": {
       "type": "object",
       "patternProperties": {
@@ -51,14 +122,16 @@
                         "type": "array",
                         "items": {
                           "type": "string",
-                          "enum": [ "flex" ]
+                          "enum": [ "flex", "c:as-ptr", "cpp:as-ref" ]
                         }
                       },
                       "@doc":     { "type": "string"  },
                       "@dir":     { "type": "string",
                                     "enum": [ "in", "out", "inout" ] },
                       "@maxlen":  { "type": "integer" },
-                      "@flex":    { "type": "boolean" }
+                      "@flex":    { "type": "boolean" },
+                      "@c:as-ptr": { "type": "boolean" },
+                      "@cpp:as-ref": { "type": "boolean" }
                     },
                     "required": ["name", "type"],
                     "additionalProperties": false
