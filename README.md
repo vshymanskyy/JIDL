@@ -42,7 +42,7 @@ By using a JSON-based IDL, developers can take advantage of these benefits to cr
 ```sh
 pip install jsonschema jinja2
 
-python3 jidl2c.py ./examples/Calculator.jidl
+python3 jidl2c.py ./examples/Calculator.idl.json
 ```
 
 Which produces:
