@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+
+  "title": "JIDL",
+  "description": "JSON-based Interface Definition Language",
+  "version": "0.1.0",
+  "author": "Volodymyr Shymanskyy",
+  "license": "Apache-2.0",
+
+  "type": "object",
+  "properties": {
+    "module":       { "type": "string" },
+    "@output_dir":  { "type": "string" },
+    "@doc":         { "type": "string" },
+    "interfaces": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z_][A-Za-z0-9_]*$": {
+          "title": "Interface",
+          "type": "object",
+          "properties": {
+            "@id":  { "type": "integer" },
+            "@doc": { "type": "string"  }
+          },
+          "patternProperties": {
+            "^[A-Za-z_][A-Za-z0-9_]*$": {
+              "title": "Function",
+              "type": "object",
+              "properties": {
+                "@attrs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [ "oneway", "no_impl", "c:ret_status"]
+                  }
+                },
+                "@doc":            { "type": "string"  },
+                "@oneway":         { "type": "boolean" },
+                "@no_impl":        { "type": "boolean" },
+                "@c:ret_status":   { "type": "boolean" },
+                "@c:error_val":    { "type": ["number", "string", "boolean"] },
+                "@timeout":        { "type": "integer" },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "type": { "type": "string" },
+                      "@attrs": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [ "flex" ]
+                        }
+                      },
+                      "@doc":     { "type": "string"  },
+                      "@dir":     { "type": "string",
+                                    "enum": [ "in", "out", "inout" ] },
+                      "@maxlen":  { "type": "integer" },
+                      "@flex":    { "type": "boolean" }
+                    },
+                    "required": ["name", "type"],
+                    "additionalProperties": false
+                  }
+                },
+                "returns": {
+                  "type": ["string", "null", "object"]
+                }
+              },
+              "additionalProperties": false
+            },
+            "additionalProperties": false
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["module", "interfaces"],
+  "additionalProperties": false
+}
