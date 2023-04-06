@@ -1,4 +1,4 @@
-# JIDL
+# JIDL Reference
 
 **Note:** This is an early version of a document, and it's not intended to be a formal definition of JIDL. See [JSON Schema](../jidl.schema.json) for details.
 
