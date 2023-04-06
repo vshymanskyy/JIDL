@@ -29,7 +29,7 @@ This is **jiddle** - a `JSON`-based, simple and extensible `Interface Definition
 
 We can generate `C/C++` RPC shims based on this IDL:
 
-```
+```sh
 python3 jidl2c.py ./examples/Calculator.jidl
 ```
 
