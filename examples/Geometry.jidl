@@ -1,0 +1,35 @@
+{
+  "module":   "Geometry",
+  "types": {
+    "distance":  "Float32",
+    "Point": {
+      "type": "struct",
+      "fields": [
+        { "name": "x", "type": "Float32" },
+        { "name": "y", "type": "Float32" }
+      ]
+    },
+    "Status": {
+      "type": "enum",
+      "items": ["OK", "FAIL"]
+    },
+    "SparseEnum": {
+      "type": "enum",
+      "items": {
+        "one":      1,
+        "hundred":  100
+      }
+    }
+  },
+  "interfaces": {
+    "geometry": {
+      "calculate_distance": {
+        "args": [
+          { "name": "a", "type": "Point" },
+          { "name": "b", "type": "Point" }
+        ],
+        "returns": "distance"
+      }
+    }
+  }
+}
