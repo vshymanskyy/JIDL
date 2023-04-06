@@ -3,6 +3,7 @@
 This is **Jiddle** - a `JSON`-based, simple and extensible `Interface Definition Language`
 
 - [Documentation](./docs/JIDL.md)
+- [Example IDLs](./examples)
 - [JSON Schema](./jidl.schema.json)
 
 ## Rationale
