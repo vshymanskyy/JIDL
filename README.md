@@ -27,7 +27,7 @@ This is **jiddle** - a `JSON`-based, simple and extensible `Interface Definition
 }
 ```
 
-We can generate `C/C++` shims based on this IDL:
+We can generate `C/C++` RPC shims based on this IDL:
 
 ```
 python3 jidl2c.py ./examples/Calculator.jidl
@@ -36,6 +36,7 @@ python3 jidl2c.py ./examples/Calculator.jidl
 Which produces:
 
 ```cpp
+/* Server-side shim */
 static inline
 void rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
   // Deserialize inputs
@@ -52,8 +53,7 @@ void rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
   _rpc_buff->write_int8(_rpc_ret_val);
 }
 
-//...
-
+/* Client-side shim */
 static inline
 int8_t rpc_calc_add(int32_t a, int32_t b, int32_t *c) {
   //...
