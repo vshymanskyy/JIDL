@@ -73,12 +73,11 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t *c) {
   RpcStatus _rpc_status = rpc_wait_result(_rpc_seq, &_rsp_buff);
   if (_rpc_status == RPC_STATUS_OK) {
     // Deserialize outputs
-    _rsp_buff.read_int32(&c);
+    _rsp_buff.read_int32(c);
     _rsp_buff.read_int8(&_rpc_ret_val);
     return _rpc_ret_val;
   }
 
   return _rpc_ret_val;
 }
-
 ```
