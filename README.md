@@ -40,6 +40,8 @@ By using a JSON-based IDL, developers can take advantage of these benefits to cr
 ## `C/C++` RPC shims generation
 
 ```sh
+pip install jsonschema jinja2
+
 python3 jidl2c.py ./examples/Calculator.jidl
 ```
 
