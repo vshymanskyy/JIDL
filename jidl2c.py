@@ -94,7 +94,7 @@ def load_idl(fn):
     script_path = Path(__file__).resolve().parent
 
     # Load the schema JSON
-    with open(script_path / "jidl.schema", "r") as f:
+    with open(script_path / "jidl.schema.json", "r") as f:
         idl_schema = json.load(f)
 
     # Validate the IDL data against the schema
