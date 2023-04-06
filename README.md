@@ -5,7 +5,17 @@ This is **jiddle** - a `JSON`-based, simple and extensible `Interface Definition
 - [Documentation](./docs/JIDL.md)
 - [JSON Schema](./jidl.schema.json)
 
-## Example
+## Rationale
+
+A JSON-based Interface Definition Language (IDL) is a handy way to describe and communicate the structure of an application's interfaces, especially when it comes to Remote Procedure Calls (RPC). Using a JSON-based IDL offers some cool perks for developers:
+
+1. **Language and tool-friendly format**: JSON and works well with tons of programming languages. This means it can easily fit into all kinds of applications, no matter what language or platform you're using. This includes tools for validation, conversion, and code generation, which help make development smoother and less prone to errors.
+2. **Easy to read and write**: there's no need to learn yet another IDL syntax, so it's easier for developers to understand the interface definitions, which means everyone can work together better and faster.
+3. **Flexible and extensible**: developers can add new attributes or properties to the interface definitions whenever they need to. This means the IDL can grow and change with the application, supporting new features without causing any problems.
+
+By using a JSON-based IDL, developers can take advantage of these benefits to create interfaces more effectively and efficiently. Plus, it's easier to work with tools and libraries that generate client-side and server-side code, documentation, and other goodies, making development even more productive and maintainable.
+
+## Example IDL file
 
 ```json
 {
@@ -27,7 +37,7 @@ This is **jiddle** - a `JSON`-based, simple and extensible `Interface Definition
 }
 ```
 
-We can generate `C/C++` RPC shims based on this IDL:
+## `C/C++` RPC shims generation
 
 ```sh
 python3 jidl2c.py ./examples/Calculator.jidl
