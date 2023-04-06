@@ -1,11 +1,26 @@
+# JIDL
+
+**Note:** This is an early version of a document, and it's not intended to be a formal definition of JIDL. See [JSON Schema](../jidl.schema.json) for details.
 
 ## Types
+
+### Built-in types
 
 - `Bool` - `0/1`
 - `Int8`, `UInt8`, `Int16`, `UInt16`, ... - fixed-width integers
 - `Float32`, `Float64` - fixed-width IEEE 754 floats
 - `String` - a NULL-terminated string
 - `Binary` - a fixed-size array of bytes
+
+### Type definitions
+
+`TODO`
+
+## Interfaces
+
+`TODO`
+
+## Attributes
 
 ### Generic Attributes
 
