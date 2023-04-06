@@ -2,6 +2,9 @@
 
 This is **jiddle** - a `JSON`-based, simple and extensible `Interface Definition Language`
 
+- [Documentation](./docs/JIDL.md)
+- [JSON Schema](./jidl.schema.json)
+
 ## Example
 
 ```json
