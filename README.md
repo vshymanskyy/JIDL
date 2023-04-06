@@ -1,6 +1,6 @@
 # JIDL
 
-This is **Jiddle** - a `JSON`-based, simple and extensible `Interface Definition Language`
+This is **Jiddle** - a `JSON`-based, simple, and extensible `Interface Definition Language`
 
 - [Documentation](./docs/JIDL.md)
 - [Example IDLs](./examples)
@@ -16,7 +16,7 @@ A JSON-based Interface Definition Language (IDL) is a handy way to describe and 
 2. **Easy to read and write**: there's no need to learn yet another IDL syntax, so it's easier for developers to understand the interface definitions. Everyone can work together better and faster.
 3. **Flexible and extensible**: developers can add new attributes or properties to the interface definitions whenever they need to. This means the IDL can grow and change with the application, supporting new features without causing any problems.
 
-By using a JSON-based IDL, developers can take advantage of these benefits to create interfaces more effectively and efficiently. Plus, it's easier to work with tools and libraries that generate client-side and server-side code, documentation, and other goodies, making development even more productive and maintainable.
+Using a JSON-based IDL, developers can create interfaces more effectively and efficiently. Plus, it's easier to create tools and libraries that generate client-side and server-side code, documentation, and other goodies, making development even more productive and maintainable.
 
 ## Example IDL file
 
