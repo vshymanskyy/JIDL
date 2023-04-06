@@ -15,11 +15,18 @@
 ### Type aliases
 
 You can define type aliases, i.e. it may be useful to specify common Integer/Float types for your module:
-
 ```json
   "types": {
     "Integer":  "Int64",
     "Float":    "Float64"
+  }
+```
+
+The `$external` type can be used to declare an opaque (or native) type of a target language, i.e:
+```json
+  "types": {
+    "Int128":  "int128_t",
+    "int128_t": "$external"
   }
 ```
 
