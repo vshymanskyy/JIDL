@@ -9,8 +9,8 @@
 - `Bool` - `0/1`
 - `Int8`, `UInt8`, `Int16`, `UInt16`, `Int32`, `UInt32`, `Int64`, `UInt64` - fixed-width integers
 - `Float32`, `Float64` - fixed-width IEEE 754 floats
-- `String` - a NULL-terminated string
-- `Binary` - a fixed-size array of bytes
+- `String` - string
+- `Binary` - fixed-size array of bytes
 
 ### Type definitions
 
