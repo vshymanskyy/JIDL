@@ -27,9 +27,9 @@ A JSON-based Interface Definition Language (IDL) is a handy way to describe and 
       "add": {
         "@doc": "Calculates c = a + b",
         "args": [
-          { "name": "a", "type": "Int32" },
-          { "name": "b", "type": "Int32" },
-          { "name": "c", "type": "Int32", "@dir": "out" }
+          { "a": "Int32" },
+          { "b": "Int32" },
+          { "c": "Int32", "@dir": "out" }
         ],
         "returns": "Int8"
       }
