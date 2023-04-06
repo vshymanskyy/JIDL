@@ -1,7 +1,6 @@
 # JIDL
 
-A `JSON`-based, simple and extensible `Interface Definition Language`
-
+This is **jiddle** - a `JSON`-based, simple and extensible `Interface Definition Language`
 
 ## Example
 
