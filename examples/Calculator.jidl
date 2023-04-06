@@ -1,0 +1,17 @@
+{
+  "module": "Calculator",
+  "interfaces" : {
+    "calc": {
+      "@id": 1,
+      "add": {
+        "@doc": "Calculates c = a + b",
+        "args": [
+          { "name": "a", "type": "Int32" },
+          { "name": "b", "type": "Int32" },
+          { "name": "c", "type": "Int32", "@dir": "out" }
+        ],
+        "returns": "Int8"
+      }
+    }
+  }
+}
