@@ -93,13 +93,17 @@ def load_idl(fn):
 
     script_path = Path(__file__).resolve().parent
 
-    # Load the schema JSON
-    with open(script_path / "jidl.schema.json", "r") as f:
-        idl_schema = json.load(f)
+    # Load the IDL schema
+    with open(script_path / "schema" / "jidl-relaxed.json", "r") as f:
+        idl_schema_relaxed = json.load(f)
+    with open(script_path / "schema" / "jidl-strict.json", "r") as f:
+        idl_schema_strict = json.load(f)
 
     # Validate the IDL data against the schema
     try:
-        jsonschema.validate(instance=idl, schema=idl_schema)
+        jsonschema.validate(instance=idl, schema=idl_schema_relaxed)
+        normalize_idl(idl)
+        jsonschema.validate(instance=idl, schema=idl_schema_strict)
     except jsonschema.ValidationError as e:
         print(f"{e.json_path}: {e.message}")
         print(f"Schema rule:\n{'.'.join(e.schema_path)}")
@@ -251,7 +255,6 @@ tmpl_header = jinja.from_string("""
 
 def main():
     idl = load_idl(sys.argv[1])
-    normalize_idl(idl)
 
     output_dir = Path(idl["@output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
