@@ -116,20 +116,13 @@
                   "title": "Arguments",
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": { "type": "string" },
-                      "type": { "type": "string" },
-                      "@doc":     { "type": "string"  },
-                      "@dir":     { "type": "string",
-                                    "enum": [ "in", "out", "inout" ] },
-                      "@maxlen":  { "type": "integer" },
-                      "@flex":    { "type": "boolean" },
-                      "@c:as-ptr": { "type": "boolean" },
-                      "@cpp:as-ref": { "type": "boolean" }
-                    },
-                    "required": ["name", "type"],
-                    "additionalProperties": false
+                        "type": "object",
+                        "allOf": [{ "$ref": "/schemas/argumentAttributes" }],
+                        "properties": {
+                          "name": { "type": "string" },
+                          "type": { "type": "string" }
+                        },
+                        "required": ["name", "type"]
                   }
                 },
                 "returns": {
@@ -158,5 +151,30 @@
     }
   },
   "required": ["module", "interfaces"],
-  "additionalProperties": false
+  "additionalProperties": false,
+
+  "$defs": {
+    "argumentAttributes": {
+      "$id": "/schemas/argumentAttributes",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+
+      "type": "object",
+      "properties": {
+        "@attrs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [ "flex", "c:as-ptr", "cpp:as-ref" ]
+          }
+        },
+        "@doc":     { "type": "string"  },
+        "@dir":     { "type": "string",
+                      "enum": [ "in", "out", "inout" ] },
+        "@maxlen":  { "type": "integer" },
+        "@flex":    { "type": "boolean" },
+        "@c:as-ptr": { "type": "boolean" },
+        "@cpp:as-ref": { "type": "boolean" }
+      }
+    }
+  }
 }

@@ -77,6 +77,11 @@ def normalize_idl(idl):
                 func["args"] = []
             for arg in func["args"]:
                 expand_attrs(arg)
+                if "name" not in arg:
+                    # Find name
+                    [name] = [key for key, val in arg.items() if not key.startswith("@")]
+                    arg.update({"name": name, "type": arg[name]})
+                    del arg[name]
                 if "@dir" not in arg:
                     arg["@dir"] = "in"
 
