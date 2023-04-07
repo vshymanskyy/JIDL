@@ -9,7 +9,6 @@ import sys
 import json
 import jinja2
 import jsonschema
-from pprint import pprint
 from pathlib import Path
 
 jinja = jinja2.Environment(undefined=jinja2.StrictUndefined)
@@ -103,6 +102,17 @@ def normalize_idl(idl):
             else:
                 expand_attrs(func["returns"])
 
+def save_strict(idl):
+    from compact_json import Formatter, EolStyle
+
+    formatter = Formatter()
+    formatter.indent_spaces = 2
+    formatter.max_inline_complexity = 1
+    formatter.json_eol_style = EolStyle.LF
+
+    with open("_strict.idl.json", "w") as f:
+        f.write(formatter.serialize(idl))
+
 def load_idl(fn):
     with open(fn, 'r') as f:
         idl = json.load(f)
@@ -115,15 +125,28 @@ def load_idl(fn):
     with open(script_path / "schema" / "jidl-strict.json", "r") as f:
         idl_schema_strict = json.load(f)
 
-    # Validate the IDL data against the schema
-    try:
-        jsonschema.validate(instance=idl, schema=idl_schema_relaxed)
-        normalize_idl(idl)
-        jsonschema.validate(instance=idl, schema=idl_schema_strict)
-    except jsonschema.ValidationError as e:
+    def handleValidationError(e):
         print(f"{e.json_path}: {e.message}")
         print(f"Schema rule:\n{'.'.join(e.schema_path)}")
         sys.exit(1)
+
+    try:
+        jsonschema.validate(instance=idl, schema=idl_schema_relaxed)
+    except jsonschema.ValidationError as e:
+        handleValidationError(e)
+
+    # Normalize
+    normalize_idl(idl)
+    save_strict(idl)
+
+    try:
+        jsonschema.validate(instance=idl, schema=idl_schema_strict)
+    except jsonschema.ValidationError as e:
+        print()
+        print("  -> Strict schema validation failed after normalization! <-")
+        print("  This is most probably a JIDL bug, please report it via GitHub Issues")
+        print()
+        handleValidationError(e)
 
     return idl
 
@@ -274,9 +297,6 @@ def main():
 
     output_dir = Path(idl["@output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    with open("_merged.idl.py", "w") as f:
-        pprint(idl, f, sort_dicts=False)
 
     for interface_name, interface in idl["interfaces"].items():
         client_shims = []
