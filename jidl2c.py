@@ -75,6 +75,11 @@ def normalize_idl(idl):
     if "@output_dir" not in idl:
         idl["@output_dir"] = "./output"
 
+    for name, data in idl["types"].items():
+        if isinstance(data, str):
+            idl["types"][name] = { "type": "alias", "for": data }
+        expand_attrs(data)
+
     for interface in idl["interfaces"].values():
         expand_attrs(interface)
         for func in skip_attrs(interface).values():

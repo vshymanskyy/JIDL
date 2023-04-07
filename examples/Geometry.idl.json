@@ -1,7 +1,7 @@
 {
   "module":   "Geometry",
   "types": {
-    "distance":  "Float32",
+    "distance": "Float32",
     "Point": {
       "type": "struct",
       "fields": [
@@ -28,7 +28,7 @@
           { "name": "a", "type": "Point" },
           { "name": "b", "type": "Point" }
         ],
-        "returns": "distance"
+        "returns": { "type": "distance", "@doc": "Well... the distance." }
       }
     }
   }

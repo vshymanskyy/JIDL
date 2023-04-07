@@ -128,11 +128,11 @@
                 "returns": {
                   "oneOf": [
                     { "type": "null" },
-                    { "type": "string" },
                     {
                       "type": "object",
                       "properties": {
-                        "type": { "type": "string" }
+                        "type": { "type": "string" },
+                        "@doc": { "type": "string" }
                       },
                       "required": ["type"],
                       "additionalProperties": false
