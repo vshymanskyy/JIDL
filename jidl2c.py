@@ -59,6 +59,12 @@ def call_deser(b,acc,t,n):
 def skip_attrs(d):
     return { k: v for k, v in d.items() if not k.startswith('@') }
 
+def prepend_keys(d, keys):
+    new_items = {k: v for k, v in keys.items() if k not in d}
+    new_items.update(d)
+    d.clear()
+    d.update(new_items)
+
 def normalize_idl(idl):
     def expand_attrs(obj):
         if "@attrs" in obj:
@@ -80,7 +86,7 @@ def normalize_idl(idl):
                 if "name" not in arg:
                     # Find name
                     [name] = [key for key, val in arg.items() if not key.startswith("@")]
-                    arg.update({"name": name, "type": arg[name]})
+                    prepend_keys(arg, { "name": name, "type": arg[name] })
                     del arg[name]
                 if "@dir" not in arg:
                     arg["@dir"] = "in"
