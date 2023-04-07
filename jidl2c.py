@@ -97,7 +97,8 @@ def normalize_idl(idl):
                     # Find name
                     [name] = [key for key, val in arg.items() if not key.startswith("@")]
                     prepend_keys(arg, { "name": name, "type": arg[name] })
-                    del arg[name]
+                    if name != "type":
+                        del arg[name]
                 if "@dir" not in arg:
                     arg["@dir"] = "in"
 

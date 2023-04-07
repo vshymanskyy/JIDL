@@ -33,13 +33,11 @@
                       "name": { "type": "string" },
                       "type": { "type": "string" }
                     },
-                    "required": ["name", "type"],
-                    "additionalProperties": false
+                    "required": ["name", "type"]
                   }
                 }
               },
-              "required": ["type"],
-              "additionalProperties": false
+              "required": ["type", "fields"]
             },
             {
               "type": "object",
@@ -53,19 +51,21 @@
                     },
                     {
                       "type": "object",
-                      "additionalProperties": {
-                        "oneOf": [
-                          { "type": "number" },
-                          { "type": "string" },
-                          { "type": "boolean" }
-                        ]
-                      }
+                      "patternProperties": {
+                        "^[A-Za-z][A-Za-z0-9_]*$": {
+                          "oneOf": [
+                            { "type": "number" },
+                            { "type": "string" },
+                            { "type": "boolean" }
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
                     }
                   ]
                 }
               },
-              "required": ["type", "items"],
-              "additionalProperties": false
+              "required": ["type", "items"]
             },
             {
               "type": "object",
@@ -73,8 +73,7 @@
                 "type": { "type": "string", "enum": ["array"] },
                 "of": { "type": "string" }
               },
-              "required": ["type", "of"],
-              "additionalProperties": false
+              "required": ["type", "of"]
             },
             {
               "type": "object",
@@ -82,8 +81,7 @@
                 "type": { "type": "string", "enum": ["alias"] },
                 "for": { "type": "string" }
               },
-              "required": ["type", "for"],
-              "additionalProperties": false
+              "required": ["type", "for"]
             }
           ]
         }
@@ -134,15 +132,12 @@
                         "type": { "type": "string" },
                         "@doc": { "type": "string" }
                       },
-                      "required": ["type"],
-                      "additionalProperties": false
+                      "required": ["type"]
                     }
                   ]
                 }
-              },
-              "additionalProperties": false
-            },
-            "additionalProperties": false
+              }
+            }
           },
           "additionalProperties": false
         }
@@ -151,7 +146,6 @@
     }
   },
   "required": ["module", "interfaces"],
-  "additionalProperties": false,
 
   "$defs": {
     "argumentAttributes": {
