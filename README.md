@@ -68,7 +68,7 @@ void rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
 
 /* Client-side shim */
 static inline
-int8_t rpc_calc_add(int32_t a, int32_t b, int32_t *c) {
+int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
   //...
 
   // Serialize inputs
@@ -79,7 +79,7 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t *c) {
   rpc_send_msg(&_rpc_buff);
 
   int8_t _rpc_ret_val;
-  memset(_rpc_ret_val, 0, sizeof(_rpc_ret_val));
+  memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
 
   MessageBuffer _rsp_buff(NULL, 0);
   RpcStatus _rpc_status = rpc_wait_result(_rpc_seq, &_rsp_buff);
@@ -87,7 +87,6 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t *c) {
     // Deserialize outputs
     _rsp_buff.read_int32(c);
     _rsp_buff.read_int8(&_rpc_ret_val);
-    return _rpc_ret_val;
   }
 
   return _rpc_ret_val;

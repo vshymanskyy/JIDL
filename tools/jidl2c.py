@@ -29,22 +29,6 @@ ctypes = {
   "String":   "char*",
 }
 
-default_values = {
-  "Bool":     "false",
-  "Int8":     "0",
-  "Int16":    "0",
-  "Int32":    "0",
-  "Int64":    "0",
-  "UInt8":    "0",
-  "UInt16":   "0",
-  "UInt32":   "0",
-  "UInt64":   "0",
-  "Float32":  "0.0f",
-  "Float64":  "0.0",
-  "Binary":   "buffer_t{0, 0}",
-  "String":   "NULL",
-}
-
 def c_type(t):
     if t is None:
         return "void"
@@ -55,13 +39,19 @@ def c_type(t):
 
 def call_ser(b,acc,t,n):
     if t in ctypes:
-        t = ctypes[t].replace("_t","")
+        if t == "String":
+            t = "cstring"
+        else:
+            t = ctypes[t].replace("_t","")
         return f"{b}{acc}write_{t}({n});"
     raise Exception(f"No serializer for {t}")
 
 def call_deser(b,acc,t,n):
     if t in ctypes:
-        t = ctypes[t].replace("_t","")
+        if t == "String":
+            t = "cstring"
+        else:
+            t = ctypes[t].replace("_t","")
         return f"{b}{acc}read_{t}({n});"
     raise Exception(f"No deserializer for {t}")
 
@@ -82,12 +72,14 @@ static inline
   MessageBuffer _rpc_buff(rpc_output_buff, sizeof(rpc_output_buff));
 {% if attr_oneway %}
   _rpc_buff.write_uint16(RPC_OP_ONEWAY);
+  _rpc_buff.write_uint16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
 {% else %}
   _rpc_buff.write_uint16(RPC_OP_INVOKE);
+  _rpc_buff.write_uint16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
   _rpc_buff.write_uint16(++_rpc_seq);
 {% endif %}
-  _rpc_buff.write_uint16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
 {% if serialize_args|length > 0 %}
+
   // Serialize inputs
   {{ serialize_args|join('\n  ') }}
 {% endif %}
@@ -96,6 +88,11 @@ static inline
   rpc_send_msg(&_rpc_buff);
 
 {% if not attr_oneway %}
+  {% if ret_type %}
+  {{function_ret}} _rpc_ret_val;
+  memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
+
+  {% endif %}
   MessageBuffer _rsp_buff(NULL, 0);
   RpcStatus _rpc_status = rpc_wait_result(_rpc_seq, &_rsp_buff{{attr_timeout}});
 {% if deserialize_args|length > 0 %}
@@ -113,7 +110,9 @@ static inline
   return _rpc_status;
   {% else %}
   // TODO; indicate error
-  {{ ret_str }}
+  {% if ret_type %}
+  return _rpc_ret_val;
+  {% endif %}
   {% endif %}
 {% else %}
   // Oneway => skip response
@@ -153,12 +152,8 @@ def gen_client_shim(interface_name, function_name, function):
     if ret_type:
         if attr_ret_status:
             raise Exception("@c:ret_status used on a function with a return value")
-        deserialize_args.append(f"{function_ret} _rpc_ret_val;")
         deserialize_args.append(call_deser("_rsp_buff", ".", ret_type["type"], "&_rpc_ret_val"))
-        deserialize_args.append(f"return _rpc_ret_val;")
 
-        def_val = default_values[ret_type["type"]]
-        ret_str = f"return {def_val};"
     else:
         ret_str = ""
 
