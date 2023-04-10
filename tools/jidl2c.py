@@ -29,6 +29,22 @@ ctypes = {
   "String":   "char*",
 }
 
+default_values = {
+  "Bool":     "false",
+  "Int8":     "0",
+  "Int16":    "0",
+  "Int32":    "0",
+  "Int64":    "0",
+  "UInt8":    "0",
+  "UInt16":   "0",
+  "UInt32":   "0",
+  "UInt64":   "0",
+  "Float32":  "0.0f",
+  "Float64":  "0.0",
+  "Binary":   "buffer_t{0, 0}",
+  "String":   "NULL",
+}
+
 def c_type(t):
     if t is None:
         return "void"
@@ -46,7 +62,7 @@ def call_ser(b,acc,t,n):
 def call_deser(b,acc,t,n):
     if t in ctypes:
         t = ctypes[t].replace("_t","")
-        return f"{b}{acc}read_{t}(&{n});"
+        return f"{b}{acc}read_{t}({n});"
     raise Exception(f"No deserializer for {t}")
 
 #
@@ -73,7 +89,7 @@ static inline
   _rpc_buff.write_uint16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
 {% if serialize_args|length > 0 %}
   // Serialize inputs
-  {{serialize_args|join('\n  ')}}
+  {{ serialize_args|join('\n  ') }}
 {% endif %}
 
   // RPC call
@@ -85,15 +101,19 @@ static inline
 {% if deserialize_args|length > 0 %}
   if (_rpc_status == RPC_STATUS_OK) {
     // Deserialize outputs
-    {{deserialize_args|join('\n    ')}}
+    {{ deserialize_args|join('\n    ') }}
   }
+{% else %}
+  {% if not attr_ret_status %}
+  (void)(_rpc_status);
+  {% endif %}
 {% endif %}
 
   {% if attr_ret_status %}
   return _rpc_status;
   {% else %}
   // TODO; indicate error
-  return false;
+  {{ ret_str }}
   {% endif %}
 {% else %}
   // Oneway => skip response
@@ -110,11 +130,14 @@ def gen_client_shim(interface_name, function_name, function):
         arg_name = arg["name"]
         arg_type = arg["type"]
         arg_dir  = arg["@dir"]
-        if arg_dir == "in": # TODO
+        if arg_dir == "in":
             func_args.append(f"{c_type(arg)} {arg_name}")
             serialize_args.append(call_ser("_rpc_buff", ".", arg_type, arg_name))
-        elif arg_dir in ("out", "inout"):
-            func_args.append(f"{c_type(arg)} *{arg_name}")
+        elif arg_dir == "out":
+            func_args.append(f"{c_type(arg)}* {arg_name}")
+            deserialize_args.append(call_deser("_rsp_buff", ".", arg_type, arg_name))
+        elif arg_dir == "inout":
+            func_args.append(f"{c_type(arg)}* {arg_name}")
             serialize_args.append(call_ser("_rpc_buff", ".", arg_type, arg_name))
             deserialize_args.append(call_deser("_rsp_buff", ".", arg_type, arg_name))
 
@@ -131,8 +154,13 @@ def gen_client_shim(interface_name, function_name, function):
         if attr_ret_status:
             raise Exception("@c:ret_status used on a function with a return value")
         deserialize_args.append(f"{function_ret} _rpc_ret_val;")
-        deserialize_args.append(call_deser("_rsp_buff", ".", ret_type["type"], "_rpc_ret_val"))
+        deserialize_args.append(call_deser("_rsp_buff", ".", ret_type["type"], "&_rpc_ret_val"))
         deserialize_args.append(f"return _rpc_ret_val;")
+
+        def_val = default_values[ret_type["type"]]
+        ret_str = f"return {def_val};"
+    else:
+        ret_str = ""
 
     return tmpl_shim_func.render(**locals())
 
@@ -166,14 +194,14 @@ def gen_server_handler(interface_name, function_name, function):
         arg_dir  = arg["@dir"]
         if arg_dir == "in":
             func_args.append(f"{arg_name}")
-            deserialize_args.append(f"{c_type(arg)} {arg_name}; " + call_deser("_rpc_buff", "->", arg_type, arg_name))
+            deserialize_args.append(f"{c_type(arg)} {arg_name}; " + call_deser("_rpc_buff", "->", arg_type, f"&{arg_name}"))
         elif arg_dir == "out":
             func_args.append(f"&{arg_name}")
             deserialize_args.append(f"{c_type(arg)} {arg_name};")
             serialize_args.append(call_ser("_rpc_buff", "->", arg_type, arg_name))
         elif arg_dir == "inout":
             func_args.append(f"&{arg_name}")
-            deserialize_args.append(call_deser("_rpc_buff", "->", arg_type, arg_name))
+            deserialize_args.append(call_deser("_rpc_buff", "->", arg_type, f"&{arg_name}"))
             serialize_args.append(call_ser("_rpc_buff", "->", arg_type, arg_name))
 
     ret_val = ""
