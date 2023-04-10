@@ -130,7 +130,7 @@ def gen_client_shim(interface_name, function_name, function):
         arg_type = arg["type"]
         arg_dir  = arg["@dir"]
         if arg_dir == "in":
-            func_args.append(f"{c_type(arg)} {arg_name}")
+            func_args.append(f"const {c_type(arg)} {arg_name}")
             serialize_args.append(call_ser("_rpc_buff", ".", arg_type, arg_name))
         elif arg_dir == "out":
             func_args.append(f"{c_type(arg)}* {arg_name}")
