@@ -43,7 +43,7 @@ A JSON-based Interface Definition Language (IDL) is a handy way to describe and 
 ```sh
 python3 -m pip install jsonschema jinja2 compact-json
 
-python3 jidl2c.py ./examples/Calculator.idl.json
+python3 ./tools/jidl2c.py ./examples/Calculator.idl.json
 ```
 
 Which produces:

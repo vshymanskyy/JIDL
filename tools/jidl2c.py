@@ -87,7 +87,11 @@ def normalize_idl(idl):
 
     for interface in idl["interfaces"].values():
         expand_attrs(interface)
-        for func in skip_attrs(interface).values():
+        for func_name, func in skip_attrs(interface).items():
+            if "@TODO" in func:
+                del interface[func_name]
+                continue
+
             expand_attrs(func)
             if "args" not in func:
                 func["args"] = []
@@ -127,9 +131,9 @@ def load_idl(fn):
     script_path = Path(__file__).resolve().parent
 
     # Load the IDL schema
-    with open(script_path / "schema" / "jidl-relaxed.json", "r") as f:
+    with open(script_path / ".." / "schema" / "jidl-relaxed.json", "r") as f:
         idl_schema_relaxed = json.load(f)
-    with open(script_path / "schema" / "jidl-strict.json", "r") as f:
+    with open(script_path / ".." / "schema" / "jidl-strict.json", "r") as f:
         idl_schema_strict = json.load(f)
 
     def handleValidationError(e):
@@ -211,7 +215,7 @@ def gen_client_shim(interface_name, function_name, function):
         arg_name = arg["name"]
         arg_type = arg["type"]
         arg_dir  = arg["@dir"]
-        if arg_dir == "in":
+        if arg_dir == "in": # TODO
             func_args.append(f"{c_type(arg)} {arg_name}")
             serialize_args.append(call_ser("_rpc_buff", ".", arg_type, arg_name))
         elif arg_dir in ("out", "inout"):
@@ -268,7 +272,11 @@ def gen_server_handler(interface_name, function_name, function):
         if arg_dir == "in":
             func_args.append(f"{arg_name}")
             deserialize_args.append(f"{c_type(arg)} {arg_name}; " + call_deser("_rpc_buff", "->", arg_type, arg_name))
-        elif arg_dir in ("out", "inout"):
+        elif arg_dir == "out":
+            func_args.append(f"&{arg_name}")
+            deserialize_args.append(f"{c_type(arg)} {arg_name};")
+            serialize_args.append(call_ser("_rpc_buff", "->", arg_type, arg_name))
+        elif arg_dir == "inout":
             func_args.append(f"&{arg_name}")
             deserialize_args.append(call_deser("_rpc_buff", "->", arg_type, arg_name))
             serialize_args.append(call_ser("_rpc_buff", "->", arg_type, arg_name))
