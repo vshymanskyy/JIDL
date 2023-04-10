@@ -16,6 +16,10 @@ A JSON-based Interface Definition Language (IDL) is a handy way to describe and 
 
 **NOTE:**  Using JSON for the interface definition in JIDL does not necessarily imply that JSON will be used for data serialization in the actual application or system. In fact, developers can choose from a variety of serialization formats based on their specific requirements and constraints, such as performance, compatibility, or ease of use. Some popular serialization formats include Protocol Buffers, MessagePack, Avro, and BSON, among others.
 
+## Used by
+
+[`Blynk.NCP`](https://docs.blynk.io/en/getting-started/supported-boards)
+
 ## Example IDL file
 
 ```json
