@@ -109,7 +109,7 @@ static inline
   {% if attr_ret_status %}
   return _rpc_status;
   {% else %}
-  // TODO; indicate error
+  // TODO: indicate error
   {% if ret_type %}
   return _rpc_ret_val;
   {% endif %}
@@ -169,7 +169,7 @@ void rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) 
 
 {% if not attr_no_impl %}
   // Call the actual function
-  {{ret_val}}{{interface_name}}_{{function_name}}({{ func_args|join(', ') }});
+  {{ret_val}}rpc_{{interface_name}}_{{function_name}}_impl({{ func_args|join(', ') }});
 {% endif %}
 
   // Serialize outputs
