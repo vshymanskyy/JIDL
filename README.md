@@ -1,6 +1,6 @@
 # JIDL
 
-This is **Jiddle** - a simple, flexible, JSON-based `Interface Definition Language`
+This is **Jiddle** - a simple, flexible, JSON-based **Interface Definition Language**
 
 - [Documentation](./docs/JIDL.md)
 - [Example IDLs](./examples)
