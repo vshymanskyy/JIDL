@@ -37,6 +37,16 @@ def c_type(t):
         return ctypes[t]
     raise Exception(f"Unknown type {t}")
 
+def cc_type(t):
+    if t is None:
+        return "void"
+    t = t["type"]
+    if t == "String":
+        return "const " + ctypes[t]
+    if t in ctypes:
+        return ctypes[t]
+    raise Exception(f"Unknown type {t}")
+
 def call_ser(b,acc,t,n):
     if t in ctypes:
         if t == "String":
@@ -130,7 +140,7 @@ def gen_client_shim(interface_name, function_name, function):
         arg_type = arg["type"]
         arg_dir  = arg["@dir"]
         if arg_dir == "in":
-            func_args.append(f"const {c_type(arg)} {arg_name}")
+            func_args.append(f"{cc_type(arg)} {arg_name}")
             serialize_args.append(call_ser("_rpc_buff", ".", arg_type, arg_name))
         elif arg_dir == "out":
             func_args.append(f"{c_type(arg)}* {arg_name}")
@@ -168,6 +178,8 @@ void rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) 
 {% endif %}
 
 {% if not attr_no_impl %}
+  // Forward decl
+  {{forward_decl}}
   // Call the actual function
   {{ret_val}}rpc_{{interface_name}}_{{function_name}}_impl({{ func_args|join(', ') }});
 {% endif %}
@@ -180,6 +192,7 @@ void rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) 
 
 def gen_server_handler(interface_name, function_name, function):
     func_args = []
+    decl_args = []
     deserialize_args = []
     serialize_args = []
 
@@ -188,13 +201,16 @@ def gen_server_handler(interface_name, function_name, function):
         arg_type = arg["type"]
         arg_dir  = arg["@dir"]
         if arg_dir == "in":
+            decl_args.append(f"{cc_type(arg)} {arg_name}")
             func_args.append(f"{arg_name}")
-            deserialize_args.append(f"{c_type(arg)} {arg_name}; " + call_deser("_rpc_buff", "->", arg_type, f"&{arg_name}"))
+            deserialize_args.append(f"{cc_type(arg)} {arg_name}; " + call_deser("_rpc_buff", "->", arg_type, f"&{arg_name}"))
         elif arg_dir == "out":
+            decl_args.append(f"{c_type(arg)}* {arg_name}")
             func_args.append(f"&{arg_name}")
             deserialize_args.append(f"{c_type(arg)} {arg_name};")
             serialize_args.append(call_ser("_rpc_buff", "->", arg_type, arg_name))
         elif arg_dir == "inout":
+            decl_args.append(f"{c_type(arg)}* {arg_name}")
             func_args.append(f"&{arg_name}")
             deserialize_args.append(call_deser("_rpc_buff", "->", arg_type, f"&{arg_name}"))
             serialize_args.append(call_ser("_rpc_buff", "->", arg_type, arg_name))
@@ -206,6 +222,7 @@ def gen_server_handler(interface_name, function_name, function):
         serialize_args.append(call_ser("_rpc_buff", "->", ret_type["type"], "_rpc_ret_val"))
 
     attr_no_impl = function.get("@no_impl", False)
+    forward_decl = f"extern {c_type(ret_type)} rpc_{interface_name}_{function_name}_impl({', '.join(decl_args)});"
 
     return tmpl_handler_func.render(**locals())
 
