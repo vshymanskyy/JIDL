@@ -67,6 +67,7 @@ def skip_attrs(d):
 #
 
 tmpl_shim_func = jinja.from_string("""
+{{- function_attrs|join(' ') }}
 static inline
 {{function_ret}} rpc_{{interface_name}}_{{function_name}}({{ func_args|join(', ') }}) {
   MessageBuffer _rpc_buff(rpc_output_buff, sizeof(rpc_output_buff));
@@ -119,6 +120,7 @@ def gen_client_shim(interface_name, function_name, function):
     func_args = []
     serialize_args = []
     deserialize_args = []
+    function_attrs = []
 
     for arg in function["args"]:
         arg_name = arg["name"]
@@ -142,6 +144,9 @@ def gen_client_shim(interface_name, function_name, function):
         function_ret = "RpcStatus"
     else:
         function_ret = c_type(function["returns"])
+
+    if function.get("@deprecated", False):
+        function_attrs.append("RPC_ATTR_DEPRECATED")
 
     ret_type = function["returns"]
     if ret_type:
