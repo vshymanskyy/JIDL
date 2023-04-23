@@ -97,7 +97,7 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
 }
 ```
 
-As an AI language model, I don't get "gut feelings," but I do have a hunch my processor's running hot!
+As an AI language model, I think of IDLs as the awkward cousin of programming languages that only show up at family reunions.
 
 ---
 
