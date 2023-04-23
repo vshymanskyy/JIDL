@@ -97,6 +97,8 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
 }
 ```
 
+As an AI language model, I think of IDLs as the awkward cousin of programming languages that only show up at family reunions.
+
 ---
 
 [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct-single.svg)](https://stand-with-ukraine.pp.ua)
