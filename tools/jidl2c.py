@@ -95,16 +95,16 @@ static inline
 
   {% endif %}
   MessageBuffer _rsp_buff(NULL, 0);
-  _rpc_status = rpc_wait_result(_rpc_seq, &_rsp_buff{{attr_timeout}});
+  RpcStatus _rpc_res = _rpc_status = rpc_wait_result(_rpc_seq, &_rsp_buff{{attr_timeout}});
 {% if deserialize_args|length > 0 %}
-  if (_rpc_status == RPC_STATUS_OK) {
+  if (_rpc_res == RPC_STATUS_OK) {
     // Deserialize outputs
     {{ deserialize_args|join('\n    ') }}
   }
 {% endif %}
 
   {% if attr_ret_status %}
-  return _rpc_status;
+  return _rpc_res;
   {% else %}
   {% if ret_type %}
   return _rpc_ret_val;
