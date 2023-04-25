@@ -61,8 +61,10 @@ void rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
   int32_t b; _rpc_buff->read_int32(&b);
   int32_t c;
 
+  // Forward decl
+  extern int8_t rpc_calc_add_impl(int32_t a, int32_t b, int32_t* c);
   // Call the actual function
-  int8_t _rpc_ret_val = calc_add(a, b, &c);
+  int8_t _rpc_ret_val = rpc_calc_add_impl(a, b, &c);
 
   // Serialize outputs
   _rpc_buff->reset();
@@ -86,8 +88,8 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
   memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
 
   MessageBuffer _rsp_buff(NULL, 0);
-  RpcStatus _rpc_status = rpc_wait_result(_rpc_seq, &_rsp_buff);
-  if (_rpc_status == RPC_STATUS_OK) {
+  RpcStatus _rpc_res = _rpc_status = rpc_wait_result(_rpc_seq, &_rsp_buff);
+  if (_rpc_res == RPC_STATUS_OK) {
     // Deserialize outputs
     _rsp_buff.read_int32(c);
     _rsp_buff.read_int8(&_rpc_ret_val);

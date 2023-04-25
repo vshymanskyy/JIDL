@@ -101,6 +101,8 @@ static inline
     // Deserialize outputs
     {{ deserialize_args|join('\n    ') }}
   }
+{% else %}
+  {% if not attr_ret_status %}(void)(_rpc_res);{% endif %}
 {% endif %}
 
   {% if attr_ret_status %}
