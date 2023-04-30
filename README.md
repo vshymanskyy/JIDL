@@ -14,7 +14,7 @@ A JSON-based Interface Definition Language (IDL) is a handy way to describe and 
 2. **Flexible and extensible**: developers can add new attributes or properties to the interface definitions whenever they need to. This means the IDL can grow and change with the application, supporting new features without causing any problems.
 3. **Easy to read and write**: there's no need to learn yet another IDL syntax, so it's easier for developers to understand the interface definitions. Everyone can work together better and faster.
 
-**NOTE:**  Using JSON for the interface definition in JIDL does not necessarily imply that JSON will be used for data serialization in the actual application or system. In fact, developers can choose from a variety of serialization formats based on their specific requirements and constraints, such as performance, compatibility, or ease of use. Some popular serialization formats include Protocol Buffers, MessagePack, Avro, and BSON, among others.
+**NOTE:**  Using JSON for the interface definition in JIDL does not necessarily imply that JSON will be used for data serialization in the actual application or system. In fact, developers can choose from a variety of serialization formats based on their specific requirements and constraints, such as performance, compatibility, or ease of use. Some popular serialization formats include Protocol Buffers, Cap'n Proto, CBOR, MessagePack, Avro, etc.
 
 ## Used by
 
