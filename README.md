@@ -55,46 +55,70 @@ Which produces:
 ```cpp
 /* Server-side shim */
 static inline
-void rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
-  // Deserialize inputs
-  int32_t a; _rpc_buff->read_int32(&a);
-  int32_t b; _rpc_buff->read_int32(&b);
-  int32_t c;
+RpcStatus rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
+  // Deserialize arguments
+  int32_t a; _rpc_buff->readInt32(&a);
+  int32_t b; _rpc_buff->readInt32(&b);
+  int32_t c; // output
+
+  if (_rpc_buff->getError() || _rpc_buff->availableToRead()) {
+    return RPC_STATUS_ERROR_ARGS;
+  }
 
   // Forward decl
   extern int8_t rpc_calc_add_impl(int32_t a, int32_t b, int32_t* c);
   // Call the actual function
   int8_t _rpc_ret_val = rpc_calc_add_impl(a, b, &c);
 
-  // Serialize outputs
   _rpc_buff->reset();
-  _rpc_buff->write_int32(c);
-  _rpc_buff->write_int8(_rpc_ret_val);
+  // Serialize outputs
+  _rpc_buff->writeInt32(c);
+  _rpc_buff->writeInt8(_rpc_ret_val);
+
+  if (_rpc_buff->getError()) {
+    return RPC_STATUS_ERROR_RETS;
+  }
+  return RPC_STATUS_OK;
 }
 
 /* Client-side shim */
 static inline
 int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
-  //...
+  RpcStatus _rpc_res;
+  // Prepare return value
+  int8_t _rpc_ret_val;
+  memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
+
+  MessageBuffer _rpc_buff(rpc_output_buff, sizeof(rpc_output_buff));
+  _rpc_buff.writeUInt16(RPC_OP_INVOKE);
+  _rpc_buff.writeUInt16(RPC_UID_CALC_ADD);
+  _rpc_buff.writeUInt16(++_rpc_seq);
 
   // Serialize inputs
-  _rpc_buff.write_int32(a);
-  _rpc_buff.write_int32(b);
+  _rpc_buff.writeInt32(a);
+  _rpc_buff.writeInt32(b);
+
+  if (_rpc_buff.getError()) {
+    _rpc_status = _rpc_res = RPC_STATUS_ERROR_ARGS;
+    return _rpc_ret_val;
+  }
 
   // RPC call
   rpc_send_msg(&_rpc_buff);
 
-  int8_t _rpc_ret_val;
-  memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
-
   MessageBuffer _rsp_buff(NULL, 0);
-  RpcStatus _rpc_res = _rpc_status = rpc_wait_result(_rpc_seq, &_rsp_buff);
+  _rpc_res = rpc_wait_result(_rpc_seq, &_rsp_buff);
   if (_rpc_res == RPC_STATUS_OK) {
     // Deserialize outputs
-    _rsp_buff.read_int32(c);
-    _rsp_buff.read_int8(&_rpc_ret_val);
+    _rsp_buff.readInt32(c);
+    _rsp_buff.readInt8(&_rpc_ret_val);
+  }
+  if (_rpc_buff.getError() || _rpc_buff.availableToRead()) {
+    _rpc_status = _rpc_res = RPC_STATUS_ERROR_RETS;
+    return _rpc_ret_val;
   }
 
+  _rpc_status = _rpc_res;
   return _rpc_ret_val;
 }
 ```

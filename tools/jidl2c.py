@@ -39,20 +39,12 @@ def c_type(t):
 
 def call_ser(b,acc,t,n):
     if t in ctypes:
-        if t == "String":
-            t = "cstring"
-        else:
-            t = ctypes[t].replace("_t","")
-        return f"{b}{acc}write_{t}({n});"
+        return f"{b}{acc}write{t}({n});"
     raise Exception(f"No serializer for {t}")
 
 def call_deser(b,acc,t,n):
     if t in ctypes:
-        if t == "String":
-            t = "cstring"
-        else:
-            t = ctypes[t].replace("_t","")
-        return f"{b}{acc}read_{t}({n});"
+        return f"{b}{acc}read{t}({n});"
     raise Exception(f"No deserializer for {t}")
 
 #
@@ -70,14 +62,21 @@ tmpl_shim_func = jinja.from_string("""
 {{- function_attrs|join(' ') }}
 static inline
 {{function_ret}} rpc_{{interface_name}}_{{function_name}}({{ func_args|join(', ') }}) {
+  RpcStatus _rpc_res;
+{% if ret_type %}
+  // Prepare return value
+  {{function_ret}} _rpc_ret_val;
+  memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
+
+{% endif %}
   MessageBuffer _rpc_buff(rpc_output_buff, sizeof(rpc_output_buff));
 {% if attr_oneway %}
-  _rpc_buff.write_uint16(RPC_OP_ONEWAY);
-  _rpc_buff.write_uint16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
+  _rpc_buff.writeUInt16(RPC_OP_ONEWAY);
+  _rpc_buff.writeUInt16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
 {% else %}
-  _rpc_buff.write_uint16(RPC_OP_INVOKE);
-  _rpc_buff.write_uint16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
-  _rpc_buff.write_uint16(++_rpc_seq);
+  _rpc_buff.writeUInt16(RPC_OP_INVOKE);
+  _rpc_buff.writeUInt16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
+  _rpc_buff.writeUInt16(++_rpc_seq);
 {% endif %}
 {% if serialize_args|length > 0 %}
 
@@ -85,33 +84,30 @@ static inline
   {{ serialize_args|join('\n  ') }}
 {% endif %}
 
+  if (_rpc_buff.getError()) {
+    _rpc_status = _rpc_res = RPC_STATUS_ERROR_ARGS;
+    {{ ret_statement }}
+  }
+
   // RPC call
   rpc_send_msg(&_rpc_buff);
 
 {% if not attr_oneway %}
-  {% if ret_type %}
-  {{function_ret}} _rpc_ret_val;
-  memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
-
-  {% endif %}
   MessageBuffer _rsp_buff(NULL, 0);
-  RpcStatus _rpc_res = _rpc_status = rpc_wait_result(_rpc_seq, &_rsp_buff{{attr_timeout}});
+  _rpc_res = rpc_wait_result(_rpc_seq, &_rsp_buff{{attr_timeout}});
 {% if deserialize_args|length > 0 %}
   if (_rpc_res == RPC_STATUS_OK) {
     // Deserialize outputs
     {{ deserialize_args|join('\n    ') }}
   }
-{% else %}
-  {% if not attr_ret_status %}(void)(_rpc_res);{% endif %}
+  if (_rpc_buff.getError() || _rpc_buff.availableToRead()) {
+    _rpc_status = _rpc_res = RPC_STATUS_ERROR_RETS;
+    {{ ret_statement }}
+  }
 {% endif %}
 
-  {% if attr_ret_status %}
-  return _rpc_res;
-  {% else %}
-  {% if ret_type %}
-  return _rpc_ret_val;
-  {% endif %}
-  {% endif %}
+  _rpc_status = _rpc_res;
+  {{ ret_statement }}
 {% else %}
   // Oneway => skip response
 {% endif %}
@@ -152,21 +148,27 @@ def gen_client_shim(interface_name, function_name, function):
 
     ret_type = function["returns"]
     if ret_type:
+        ret_statement = "return _rpc_ret_val;"
         if attr_ret_status:
             raise Exception("@c:ret_status used on a function with a return value")
         deserialize_args.append(call_deser("_rsp_buff", ".", ret_type["type"], "&_rpc_ret_val"))
-
+    elif attr_ret_status:
+        ret_statement = "return _rpc_res;"
     else:
-        ret_str = ""
+        ret_statement = "return;"
 
     return tmpl_shim_func.render(**locals())
 
 tmpl_handler_func = jinja.from_string("""
 static inline
-void rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) {
+RpcStatus rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) {
 {% if deserialize_args|length > 0 %}
-  // Deserialize inputs
+  // Deserialize arguments
   {{deserialize_args|join('\n  ')}}
+
+  if (_rpc_buff->getError() || _rpc_buff->availableToRead()) {
+    return RPC_STATUS_ERROR_ARGS;
+  }
 {% endif %}
 
 {% if not attr_no_impl %}
@@ -176,9 +178,16 @@ void rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) 
   {{ret_val}}rpc_{{interface_name}}_{{function_name}}_impl({{ func_args|join(', ') }});
 {% endif %}
 
-  // Serialize outputs
   _rpc_buff->reset();
+{% if serialize_args|length > 0 %}
+  // Serialize outputs
   {{serialize_args|join('\n  ')}}
+
+  if (_rpc_buff->getError()) {
+    return RPC_STATUS_ERROR_RETS;
+  }
+{% endif %}
+  return RPC_STATUS_OK;
 }
 """)
 
@@ -199,7 +208,7 @@ def gen_server_handler(interface_name, function_name, function):
         elif arg_dir == "out":
             decl_args.append(f"{c_type(arg)}* {arg_name}")
             func_args.append(f"&{arg_name}")
-            deserialize_args.append(f"{c_type(arg)} {arg_name};")
+            deserialize_args.append(f"{c_type(arg)} {arg_name}; // output")
             serialize_args.append(call_ser("_rpc_buff", "->", arg_type, arg_name))
         elif arg_dir == "inout":
             decl_args.append(f"{c_type(arg)}* {arg_name}")
