@@ -42,7 +42,7 @@ A JSON-based Interface Definition Language (IDL) is a handy way to describe and 
 }
 ```
 
-## `C/C++` RPC shims generation
+## Generator for `C/C++`
 
 ```sh
 python3 -m pip install jsonschema jinja2 compact-json
