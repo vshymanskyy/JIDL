@@ -4,7 +4,7 @@ This is **Jiddle** - a simple, flexible, JSON-based **Interface Definition Langu
 
 - [Documentation](./docs/JIDL.md)
 - [Example IDLs](./examples)
-- [JSON Schema](./jidl.schema.json)
+- [JSON Schema](./schema/jidl-strict.json)
 
 ## Rationale
 
