@@ -62,7 +62,7 @@ RpcStatus rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
   int32_t c; // output
 
   if (_rpc_buff->getError() || _rpc_buff->availableToRead()) {
-    return RPC_STATUS_ERROR_ARGS;
+    return RPC_STATUS_ERROR_ARGS_R;
   }
 
   // Forward decl
@@ -76,7 +76,7 @@ RpcStatus rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
   _rpc_buff->writeInt8(_rpc_ret_val);
 
   if (_rpc_buff->getError()) {
-    return RPC_STATUS_ERROR_RETS;
+    return RPC_STATUS_ERROR_RETS_W;
   }
   return RPC_STATUS_OK;
 }
@@ -99,7 +99,7 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
   _rpc_buff.writeInt32(b);
 
   if (_rpc_buff.getError()) {
-    _rpc_status = _rpc_res = RPC_STATUS_ERROR_ARGS;
+    rpc_set_status(_rpc_res = RPC_STATUS_ERROR_ARGS_W);
     return _rpc_ret_val;
   }
 
@@ -113,12 +113,12 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
     _rsp_buff.readInt32(c);
     _rsp_buff.readInt8(&_rpc_ret_val);
   }
-  if (_rpc_buff.getError() || _rpc_buff.availableToRead()) {
-    _rpc_status = _rpc_res = RPC_STATUS_ERROR_RETS;
+  if (_rsp_buff.getError() || _rsp_buff.availableToRead()) {
+    rpc_set_status(_rpc_res = RPC_STATUS_ERROR_RETS_R);
     return _rpc_ret_val;
   }
 
-  _rpc_status = _rpc_res;
+  rpc_set_status(_rpc_res);
   return _rpc_ret_val;
 }
 ```
