@@ -85,7 +85,7 @@ static inline
 {% endif %}
 
   if (_rpc_buff.getError()) {
-    _rpc_status = _rpc_res = RPC_STATUS_ERROR_ARGS;
+    rpc_set_status(_rpc_res = RPC_STATUS_ERROR_ARGS_W);
     {{ ret_statement }}
   }
 
@@ -100,13 +100,13 @@ static inline
     // Deserialize outputs
     {{ deserialize_args|join('\n    ') }}
   }
-  if (_rpc_buff.getError() || _rpc_buff.availableToRead()) {
-    _rpc_status = _rpc_res = RPC_STATUS_ERROR_RETS;
+  if (_rsp_buff.getError() || _rsp_buff.availableToRead()) {
+    rpc_set_status(_rpc_res = RPC_STATUS_ERROR_RETS_R);
     {{ ret_statement }}
   }
 {% endif %}
 
-  _rpc_status = _rpc_res;
+  rpc_set_status(_rpc_res);
   {{ ret_statement }}
 {% else %}
   // Oneway => skip response
@@ -167,7 +167,7 @@ RpcStatus rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_b
   {{deserialize_args|join('\n  ')}}
 
   if (_rpc_buff->getError() || _rpc_buff->availableToRead()) {
-    return RPC_STATUS_ERROR_ARGS;
+    return RPC_STATUS_ERROR_ARGS_R;
   }
 {% endif %}
 
@@ -184,7 +184,7 @@ RpcStatus rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_b
   {{serialize_args|join('\n  ')}}
 
   if (_rpc_buff->getError()) {
-    return RPC_STATUS_ERROR_RETS;
+    return RPC_STATUS_ERROR_RETS_W;
   }
 {% endif %}
   return RPC_STATUS_OK;
