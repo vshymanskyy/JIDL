@@ -39,12 +39,12 @@ def c_type(t):
 
 def call_ser(b,acc,t,n):
     if t in ctypes:
-        return f"{b}{acc}write{t}({n});"
+        return f"MessageBuffer_write{t}({acc}{b}, {n});"
     raise Exception(f"No serializer for {t}")
 
 def call_deser(b,acc,t,n):
     if t in ctypes:
-        return f"{b}{acc}read{t}({n});"
+        return f"MessageBuffer_read{t}({acc}{b}, {n});"
     raise Exception(f"No deserializer for {t}")
 
 #
@@ -60,47 +60,49 @@ def skip_attrs(d):
 
 tmpl_shim_func = jinja.from_string("""
 {{- function_attrs|join(' ') }}
-static inline
+static
 {{function_ret}} rpc_{{interface_name}}_{{function_name}}({{ func_args|join(', ') }}) {
   RpcStatus _rpc_res;
 {% if ret_type %}
-  // Prepare return value
+  /* Prepare return value */
   {{function_ret}} _rpc_ret_val;
   memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
 
 {% endif %}
-  MessageBuffer _rpc_buff(rpc_output_buff, sizeof(rpc_output_buff));
+  MessageBuffer _rpc_buff;
+  MessageBuffer_init(&_rpc_buff, rpc_output_buff, sizeof(rpc_output_buff));
 {% if attr_oneway %}
-  _rpc_buff.writeUInt16(RPC_OP_ONEWAY);
-  _rpc_buff.writeUInt16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
+  MessageBuffer_writeUInt16(&_rpc_buff, RPC_OP_ONEWAY);
+  MessageBuffer_writeUInt16(&_rpc_buff, RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
 {% else %}
-  _rpc_buff.writeUInt16(RPC_OP_INVOKE);
-  _rpc_buff.writeUInt16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
-  _rpc_buff.writeUInt16(++_rpc_seq);
+  MessageBuffer_writeUInt16(&_rpc_buff, RPC_OP_INVOKE);
+  MessageBuffer_writeUInt16(&_rpc_buff, RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
+  MessageBuffer_writeUInt16(&_rpc_buff, ++_rpc_seq);
 {% endif %}
 {% if serialize_args|length > 0 %}
 
-  // Serialize inputs
+  /* Serialize inputs */
   {{ serialize_args|join('\n  ') }}
 {% endif %}
 
-  if (_rpc_buff.getError()) {
+  if (MessageBuffer_getError(&_rpc_buff)) {
     rpc_set_status(_rpc_res = RPC_STATUS_ERROR_ARGS_W);
     {{ ret_statement }}
   }
 
-  // RPC call
+  /* RPC call */
   rpc_send_msg(&_rpc_buff);
 
 {% if not attr_oneway %}
-  MessageBuffer _rsp_buff(NULL, 0);
-  _rpc_res = rpc_wait_result(_rpc_seq, &_rsp_buff{{attr_timeout}});
+  MessageBuffer _rsp_buff;
+  MessageBuffer_init(&_rsp_buff, NULL, 0);
+  _rpc_res = rpc_wait_result(_rpc_seq, &_rsp_buff, {{attr_timeout}});
 {% if deserialize_args|length > 0 %}
   if (_rpc_res == RPC_STATUS_OK) {
-    // Deserialize outputs
+    /* Deserialize outputs */
     {{ deserialize_args|join('\n    ') }}
   }
-  if (_rsp_buff.getError() || _rsp_buff.availableToRead()) {
+  if (MessageBuffer_getError(&_rsp_buff) || MessageBuffer_availableToRead(&_rsp_buff)) {
     rpc_set_status(_rpc_res = RPC_STATUS_ERROR_RETS_R);
     {{ ret_statement }}
   }
@@ -109,7 +111,7 @@ static inline
   rpc_set_status(_rpc_res);
   {{ ret_statement }}
 {% else %}
-  // Oneway => skip response
+  /* Oneway => skip response */
 {% endif %}
 }
 """)
@@ -126,18 +128,18 @@ def gen_client_shim(interface_name, function_name, function):
         arg_dir  = arg["@dir"]
         if arg_dir == "in":
             func_args.append(f"{c_type(arg)} {arg_name}")
-            serialize_args.append(call_ser("_rpc_buff", ".", arg_type, arg_name))
+            serialize_args.append(call_ser("_rpc_buff", "&", arg_type, arg_name))
         elif arg_dir == "out":
             func_args.append(f"{c_type(arg)}* {arg_name}")
-            deserialize_args.append(call_deser("_rsp_buff", ".", arg_type, arg_name))
+            deserialize_args.append(call_deser("_rsp_buff", "&", arg_type, arg_name))
         elif arg_dir == "inout":
             func_args.append(f"{c_type(arg)}* {arg_name}")
-            serialize_args.append(call_ser("_rpc_buff", ".", arg_type, arg_name))
-            deserialize_args.append(call_deser("_rsp_buff", ".", arg_type, arg_name))
+            serialize_args.append(call_ser("_rpc_buff", "&", arg_type, arg_name))
+            deserialize_args.append(call_deser("_rsp_buff", "&", arg_type, arg_name))
 
     attr_ret_status = function.get("@c:ret_status", False)
     attr_oneway = function.get("@oneway", False)
-    attr_timeout = f", {function['@timeout']}" if "@timeout" in function else ""
+    attr_timeout = function['@timeout'] if "@timeout" in function else "RPC_TIMEOUT_DEFAULT"
     if attr_ret_status:
         function_ret = "RpcStatus"
     else:
@@ -151,7 +153,7 @@ def gen_client_shim(interface_name, function_name, function):
         ret_statement = "return _rpc_ret_val;"
         if attr_ret_status:
             raise Exception("@c:ret_status used on a function with a return value")
-        deserialize_args.append(call_deser("_rsp_buff", ".", ret_type["type"], "&_rpc_ret_val"))
+        deserialize_args.append(call_deser("_rsp_buff", "&", ret_type["type"], "&_rpc_ret_val"))
     elif attr_ret_status:
         ret_statement = "return _rpc_res;"
     else:
@@ -160,30 +162,30 @@ def gen_client_shim(interface_name, function_name, function):
     return tmpl_shim_func.render(**locals())
 
 tmpl_handler_func = jinja.from_string("""
-static inline
+static
 RpcStatus rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) {
 {% if deserialize_args|length > 0 %}
-  // Deserialize arguments
+  /* Deserialize arguments */
   {{deserialize_args|join('\n  ')}}
 
-  if (_rpc_buff->getError() || _rpc_buff->availableToRead()) {
+  if (MessageBuffer_getError(_rpc_buff) || MessageBuffer_availableToRead(_rpc_buff)) {
     return RPC_STATUS_ERROR_ARGS_R;
   }
 {% endif %}
 
 {% if not attr_no_impl %}
-  // Forward decl
+  /* Forward decl */
   {{forward_decl}}
-  // Call the actual function
+  /* Call the actual function */
   {{ret_val}}rpc_{{interface_name}}_{{function_name}}_impl({{ func_args|join(', ') }});
 {% endif %}
 
-  _rpc_buff->reset();
+  MessageBuffer_reset(_rpc_buff);
 {% if serialize_args|length > 0 %}
-  // Serialize outputs
+  /* Serialize outputs */
   {{serialize_args|join('\n  ')}}
 
-  if (_rpc_buff->getError()) {
+  if (MessageBuffer_getError(_rpc_buff)) {
     return RPC_STATUS_ERROR_RETS_W;
   }
 {% endif %}
@@ -204,23 +206,23 @@ def gen_server_handler(interface_name, function_name, function):
         if arg_dir == "in":
             decl_args.append(f"{c_type(arg)} {arg_name}")
             func_args.append(f"{arg_name}")
-            deserialize_args.append(f"{c_type(arg)} {arg_name}; " + call_deser("_rpc_buff", "->", arg_type, f"&{arg_name}"))
+            deserialize_args.append(f"{c_type(arg)} {arg_name}; " + call_deser("_rpc_buff", "", arg_type, f"&{arg_name}"))
         elif arg_dir == "out":
             decl_args.append(f"{c_type(arg)}* {arg_name}")
             func_args.append(f"&{arg_name}")
-            deserialize_args.append(f"{c_type(arg)} {arg_name}; // output")
-            serialize_args.append(call_ser("_rpc_buff", "->", arg_type, arg_name))
+            deserialize_args.append(f"{c_type(arg)} {arg_name}; memset(&{arg_name}, 0, sizeof({arg_name})); /* output */")
+            serialize_args.append(call_ser("_rpc_buff", "", arg_type, arg_name))
         elif arg_dir == "inout":
             decl_args.append(f"{c_type(arg)}* {arg_name}")
             func_args.append(f"&{arg_name}")
-            deserialize_args.append(call_deser("_rpc_buff", "->", arg_type, f"&{arg_name}"))
-            serialize_args.append(call_ser("_rpc_buff", "->", arg_type, arg_name))
+            deserialize_args.append(call_deser("_rpc_buff", "", arg_type, f"&{arg_name}"))
+            serialize_args.append(call_ser("_rpc_buff", "", arg_type, arg_name))
 
     ret_val = ""
     ret_type = function["returns"]
     if ret_type:
         ret_val = f"{c_type(ret_type)} _rpc_ret_val = "
-        serialize_args.append(call_ser("_rpc_buff", "->", ret_type["type"], "_rpc_ret_val"))
+        serialize_args.append(call_ser("_rpc_buff", "", ret_type["type"], "_rpc_ret_val"))
 
     attr_no_impl = function.get("@no_impl", False)
     forward_decl = f"extern {c_type(ret_type)} rpc_{interface_name}_{function_name}_impl({', '.join(decl_args)});"
@@ -236,7 +238,7 @@ tmpl_header = jinja.from_string("""
 
 {{content}}
 
-#endif // {{guard}}
+#endif /* {{guard}} */
 """)
 
 def gen_c(idl):
