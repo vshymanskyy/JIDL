@@ -60,7 +60,7 @@ def skip_attrs(d):
 
 tmpl_shim_func = jinja.from_string("""
 {{- function_attrs|join(' ') }}
-static
+static inline
 {{function_ret}} rpc_{{interface_name}}_{{function_name}}({{ func_args|join(', ') }}) {
   RpcStatus _rpc_res;
 {% if ret_type %}
