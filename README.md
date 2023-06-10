@@ -54,28 +54,28 @@ Which produces:
 
 ```cpp
 /* Server-side shim */
-static inline
+static
 RpcStatus rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
-  // Deserialize arguments
-  int32_t a; _rpc_buff->readInt32(&a);
-  int32_t b; _rpc_buff->readInt32(&b);
-  int32_t c; // output
+  /* Deserialize arguments */
+  int32_t a; MessageBuffer_readInt32(_rpc_buff, &a);
+  int32_t b; MessageBuffer_readInt32(_rpc_buff, &b);
+  int32_t c; memset(&c, 0, sizeof(c)); /* output */
 
-  if (_rpc_buff->getError() || _rpc_buff->availableToRead()) {
+  if (MessageBuffer_getError(_rpc_buff) || MessageBuffer_availableToRead(_rpc_buff)) {
     return RPC_STATUS_ERROR_ARGS_R;
   }
 
-  // Forward decl
+  /* Forward decl */
   extern int8_t rpc_calc_add_impl(int32_t a, int32_t b, int32_t* c);
-  // Call the actual function
+  /* Call the actual function */
   int8_t _rpc_ret_val = rpc_calc_add_impl(a, b, &c);
 
-  _rpc_buff->reset();
-  // Serialize outputs
-  _rpc_buff->writeInt32(c);
-  _rpc_buff->writeInt8(_rpc_ret_val);
+  MessageBuffer_reset(_rpc_buff);
+  /* Serialize outputs */
+  MessageBuffer_writeInt32(_rpc_buff, c);
+  MessageBuffer_writeInt8(_rpc_buff, _rpc_ret_val);
 
-  if (_rpc_buff->getError()) {
+  if (MessageBuffer_getError(_rpc_buff)) {
     return RPC_STATUS_ERROR_RETS_W;
   }
   return RPC_STATUS_OK;
@@ -85,35 +85,37 @@ RpcStatus rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
 static inline
 int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
   RpcStatus _rpc_res;
-  // Prepare return value
+  /* Prepare return value */
   int8_t _rpc_ret_val;
   memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
 
-  MessageBuffer _rpc_buff(rpc_output_buff, sizeof(rpc_output_buff));
-  _rpc_buff.writeUInt16(RPC_OP_INVOKE);
-  _rpc_buff.writeUInt16(RPC_UID_CALC_ADD);
-  _rpc_buff.writeUInt16(++_rpc_seq);
+  MessageBuffer _rpc_buff;
+  MessageBuffer_init(&_rpc_buff, rpc_output_buff, sizeof(rpc_output_buff));
+  MessageBuffer_writeUInt16(&_rpc_buff, RPC_OP_INVOKE);
+  MessageBuffer_writeUInt16(&_rpc_buff, RPC_UID_CALC_ADD);
+  MessageBuffer_writeUInt16(&_rpc_buff, ++_rpc_seq);
 
-  // Serialize inputs
-  _rpc_buff.writeInt32(a);
-  _rpc_buff.writeInt32(b);
+  /* Serialize inputs */
+  MessageBuffer_writeInt32(&_rpc_buff, a);
+  MessageBuffer_writeInt32(&_rpc_buff, b);
 
-  if (_rpc_buff.getError()) {
+  if (MessageBuffer_getError(&_rpc_buff)) {
     rpc_set_status(_rpc_res = RPC_STATUS_ERROR_ARGS_W);
     return _rpc_ret_val;
   }
 
-  // RPC call
+  /* RPC call */
   rpc_send_msg(&_rpc_buff);
 
-  MessageBuffer _rsp_buff(NULL, 0);
-  _rpc_res = rpc_wait_result(_rpc_seq, &_rsp_buff);
+  MessageBuffer _rsp_buff;
+  MessageBuffer_init(&_rsp_buff, NULL, 0);
+  _rpc_res = rpc_wait_result(_rpc_seq, &_rsp_buff, RPC_TIMEOUT_DEFAULT);
   if (_rpc_res == RPC_STATUS_OK) {
-    // Deserialize outputs
-    _rsp_buff.readInt32(c);
-    _rsp_buff.readInt8(&_rpc_ret_val);
+    /* Deserialize outputs */
+    MessageBuffer_readInt32(&_rsp_buff, c);
+    MessageBuffer_readInt8(&_rsp_buff, &_rpc_ret_val);
   }
-  if (_rsp_buff.getError() || _rsp_buff.availableToRead()) {
+  if (MessageBuffer_getError(&_rsp_buff) || MessageBuffer_availableToRead(&_rsp_buff)) {
     rpc_set_status(_rpc_res = RPC_STATUS_ERROR_RETS_R);
     return _rpc_ret_val;
   }
