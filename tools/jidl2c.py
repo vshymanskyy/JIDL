@@ -162,6 +162,8 @@ def gen_client_shim(interface_name, function_name, function):
     return tmpl_shim_func.render(**locals())
 
 tmpl_handler_func = jinja.from_string("""
+{{forward_decl}}
+
 static
 RpcStatus rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) {
 {% if deserialize_args|length > 0 %}
@@ -174,8 +176,6 @@ RpcStatus rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_b
 {% endif %}
 
 {% if not attr_no_impl %}
-  /* Forward decl */
-  {{forward_decl}}
   /* Call the actual function */
   {{ret_val}}rpc_{{interface_name}}_{{function_name}}_impl({{ func_args|join(', ') }});
 {% endif %}
@@ -225,7 +225,7 @@ def gen_server_handler(interface_name, function_name, function):
         serialize_args.append(call_ser("_rpc_buff", "", ret_type["type"], "_rpc_ret_val"))
 
     attr_no_impl = function.get("@no_impl", False)
-    forward_decl = f"extern {c_type(ret_type)} rpc_{interface_name}_{function_name}_impl({', '.join(decl_args)});"
+    forward_decl = f"extern \"C\" {c_type(ret_type)} rpc_{interface_name}_{function_name}_impl({', '.join(decl_args)});"
 
     return tmpl_handler_func.render(**locals())
 
