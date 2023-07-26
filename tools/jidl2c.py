@@ -39,7 +39,7 @@ def c_type(t):
 
 def call_ser(b,acc,t,n):
     if t in ctypes:
-        return f"MessageBuffer_write{t}({acc}{b}, {n});"
+        return f"MessageWriter_write{t}({n});"
     raise Exception(f"No serializer for {t}")
 
 def call_deser(b,acc,t,n):
@@ -62,36 +62,30 @@ tmpl_shim_func = jinja.from_string("""
 {{- function_attrs|join(' ') }}
 static inline
 {{function_ret}} rpc_{{interface_name}}_{{function_name}}({{ func_args|join(', ') }}) {
+{% if not attr_oneway %}
   RpcStatus _rpc_res;
+{% endif %}
 {% if ret_type %}
   /* Prepare return value */
   {{function_ret}} _rpc_ret_val;
   memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
 
 {% endif %}
-  MessageBuffer _rpc_buff;
-  MessageBuffer_init(&_rpc_buff, rpc_output_buff, sizeof(rpc_output_buff));
+  MessageWriter_begin();
 {% if attr_oneway %}
-  MessageBuffer_writeUInt16(&_rpc_buff, RPC_OP_ONEWAY);
-  MessageBuffer_writeUInt16(&_rpc_buff, RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
+  MessageWriter_writeUInt16(RPC_OP_ONEWAY);
+  MessageWriter_writeUInt16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
 {% else %}
-  MessageBuffer_writeUInt16(&_rpc_buff, RPC_OP_INVOKE);
-  MessageBuffer_writeUInt16(&_rpc_buff, RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
-  MessageBuffer_writeUInt16(&_rpc_buff, ++_rpc_seq);
+  MessageWriter_writeUInt16(RPC_OP_INVOKE);
+  MessageWriter_writeUInt16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
+  MessageWriter_writeUInt16(++_rpc_seq);
 {% endif %}
 {% if serialize_args|length > 0 %}
 
   /* Serialize inputs */
   {{ serialize_args|join('\n  ') }}
 {% endif %}
-
-  if (MessageBuffer_getError(&_rpc_buff)) {
-    rpc_set_status(_rpc_res = RPC_STATUS_ERROR_ARGS_W);
-    {{ ret_statement }}
-  }
-
-  /* RPC call */
-  rpc_send_msg(&_rpc_buff);
+  MessageWriter_end();
 
 {% if not attr_oneway %}
   MessageBuffer _rsp_buff;
@@ -137,6 +131,9 @@ def gen_client_shim(interface_name, function_name, function):
             serialize_args.append(call_ser("_rpc_buff", "&", arg_type, arg_name))
             deserialize_args.append(call_deser("_rsp_buff", "&", arg_type, arg_name))
 
+    if not len(func_args):
+        func_args.append("void")
+
     attr_ret_status = function.get("@c:ret_status", False)
     attr_oneway = function.get("@oneway", False)
     attr_timeout = function['@timeout'] if "@timeout" in function else "RPC_TIMEOUT_DEFAULT"
@@ -165,14 +162,19 @@ tmpl_handler_func = jinja.from_string("""
 {{forward_decl}}
 
 static
-RpcStatus rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) {
+void rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) {
 {% if deserialize_args|length > 0 %}
   /* Deserialize arguments */
   {{deserialize_args|join('\n  ')}}
 
   if (MessageBuffer_getError(_rpc_buff) || MessageBuffer_availableToRead(_rpc_buff)) {
-    return RPC_STATUS_ERROR_ARGS_R;
+{% if not attr_oneway %}
+    MessageWriter_writeUInt8(RPC_STATUS_ERROR_ARGS_R);
+{% endif %}
+    return;
   }
+{% else %}
+  (void)_rpc_buff;
 {% endif %}
 
 {% if not attr_no_impl %}
@@ -180,16 +182,13 @@ RpcStatus rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_b
   {{ret_val}}rpc_{{interface_name}}_{{function_name}}_impl({{ func_args|join(', ') }});
 {% endif %}
 
-  MessageBuffer_reset(_rpc_buff);
+{% if not attr_oneway %}
+  MessageWriter_writeUInt8(RPC_STATUS_OK);
 {% if serialize_args|length > 0 %}
   /* Serialize outputs */
   {{serialize_args|join('\n  ')}}
-
-  if (MessageBuffer_getError(_rpc_buff)) {
-    return RPC_STATUS_ERROR_RETS_W;
-  }
 {% endif %}
-  return RPC_STATUS_OK;
+{% endif %}
 }
 """)
 
@@ -224,8 +223,12 @@ def gen_server_handler(interface_name, function_name, function):
         ret_val = f"{c_type(ret_type)} _rpc_ret_val = "
         serialize_args.append(call_ser("_rpc_buff", "", ret_type["type"], "_rpc_ret_val"))
 
+    if not len(decl_args):
+        decl_args.append("void")
+
+    attr_oneway = function.get("@oneway", False)
     attr_no_impl = function.get("@no_impl", False)
-    forward_decl = f"extern \"C\" {c_type(ret_type)} rpc_{interface_name}_{function_name}_impl({', '.join(decl_args)});"
+    forward_decl = f"{c_type(ret_type)} rpc_{interface_name}_{function_name}_impl({', '.join(decl_args)});"
 
     return tmpl_handler_func.render(**locals())
 
@@ -236,7 +239,15 @@ tmpl_header = jinja.from_string("""
 #ifndef {{guard}}
 #define {{guard}}
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 {{content}}
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* {{guard}} */
 """)
