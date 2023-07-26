@@ -53,35 +53,37 @@ python3 ./tools/jidl2c.py ./examples/Calculator.idl.json
 Which produces:
 
 ```cpp
-/* Server-side shim */
+/*
+ * Server-side shim
+ */
+
+int8_t rpc_calc_add_impl(int32_t a, int32_t b, int32_t* c);
+
 static
-RpcStatus rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
+void rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
   /* Deserialize arguments */
   int32_t a; MessageBuffer_readInt32(_rpc_buff, &a);
   int32_t b; MessageBuffer_readInt32(_rpc_buff, &b);
   int32_t c; memset(&c, 0, sizeof(c)); /* output */
 
   if (MessageBuffer_getError(_rpc_buff) || MessageBuffer_availableToRead(_rpc_buff)) {
-    return RPC_STATUS_ERROR_ARGS_R;
+    MessageWriter_writeUInt8(RPC_STATUS_ERROR_ARGS_R);
+    return;
   }
 
-  /* Forward decl */
-  extern int8_t rpc_calc_add_impl(int32_t a, int32_t b, int32_t* c);
   /* Call the actual function */
   int8_t _rpc_ret_val = rpc_calc_add_impl(a, b, &c);
 
-  MessageBuffer_reset(_rpc_buff);
+  MessageWriter_writeUInt8(RPC_STATUS_OK);
   /* Serialize outputs */
-  MessageBuffer_writeInt32(_rpc_buff, c);
-  MessageBuffer_writeInt8(_rpc_buff, _rpc_ret_val);
-
-  if (MessageBuffer_getError(_rpc_buff)) {
-    return RPC_STATUS_ERROR_RETS_W;
-  }
-  return RPC_STATUS_OK;
+  MessageWriter_writeInt32(c);
+  MessageWriter_writeInt8(_rpc_ret_val);
 }
 
-/* Client-side shim */
+/*
+ * Client-side shim
+ */
+
 static inline
 int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
   RpcStatus _rpc_res;
@@ -89,23 +91,15 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
   int8_t _rpc_ret_val;
   memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
 
-  MessageBuffer _rpc_buff;
-  MessageBuffer_init(&_rpc_buff, rpc_output_buff, sizeof(rpc_output_buff));
-  MessageBuffer_writeUInt16(&_rpc_buff, RPC_OP_INVOKE);
-  MessageBuffer_writeUInt16(&_rpc_buff, RPC_UID_CALC_ADD);
-  MessageBuffer_writeUInt16(&_rpc_buff, ++_rpc_seq);
+  MessageWriter_begin();
+  MessageWriter_writeUInt16(RPC_OP_INVOKE);
+  MessageWriter_writeUInt16(RPC_UID_CALC_ADD);
+  MessageWriter_writeUInt16(++_rpc_seq);
 
   /* Serialize inputs */
-  MessageBuffer_writeInt32(&_rpc_buff, a);
-  MessageBuffer_writeInt32(&_rpc_buff, b);
-
-  if (MessageBuffer_getError(&_rpc_buff)) {
-    rpc_set_status(_rpc_res = RPC_STATUS_ERROR_ARGS_W);
-    return _rpc_ret_val;
-  }
-
-  /* RPC call */
-  rpc_send_msg(&_rpc_buff);
+  MessageWriter_writeInt32(a);
+  MessageWriter_writeInt32(b);
+  MessageWriter_end();
 
   MessageBuffer _rsp_buff;
   MessageBuffer_init(&_rsp_buff, NULL, 0);
