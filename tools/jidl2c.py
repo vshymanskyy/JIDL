@@ -71,23 +71,19 @@ static inline
   memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
 
 {% endif %}
-  MessageWriter_begin();
+  /* Send request */
 {% if attr_oneway %}
-  MessageWriter_writeUInt16(RPC_OP_ONEWAY);
-  MessageWriter_writeUInt16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
+  MessageWriter_beginOneway(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
 {% else %}
-  MessageWriter_writeUInt16(RPC_OP_INVOKE);
-  MessageWriter_writeUInt16(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
-  MessageWriter_writeUInt16(++_rpc_seq);
+  const uint16_t _rpc_seq = MessageWriter_beginInvoke(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
 {% endif %}
 {% if serialize_args|length > 0 %}
-
-  /* Serialize inputs */
   {{ serialize_args|join('\n  ') }}
 {% endif %}
   MessageWriter_end();
 
 {% if not attr_oneway %}
+  /* Wait response */
   MessageBuffer _rsp_buff;
   MessageBuffer_init(&_rsp_buff, NULL, 0);
   _rpc_res = rpc_wait_result(_rpc_seq, &_rsp_buff, {{attr_timeout}});
@@ -187,12 +183,14 @@ void rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) 
 {% endif %}
 
 {% if not attr_oneway %}
+  /* Send response */
   MessageWriter_beginResult(_rpc_seq, RPC_STATUS_OK);
 {% if serialize_args|length > 0 %}
-  /* Serialize outputs */
   {{serialize_args|join('\n  ')}}
 {% endif %}
   MessageWriter_end();
+{% else %}
+  /* Oneway => skip response */
 {% endif %}
 }
 """)

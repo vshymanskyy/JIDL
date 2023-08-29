@@ -76,8 +76,8 @@ void rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
   /* Call the actual function */
   int8_t _rpc_ret_val = rpc_calc_add_impl(a, b, &c);
 
+  /* Send response */
   MessageWriter_beginResult(_rpc_seq, RPC_STATUS_OK);
-  /* Serialize outputs */
   MessageWriter_writeInt32(c);
   MessageWriter_writeInt8(_rpc_ret_val);
   MessageWriter_end();
@@ -94,16 +94,13 @@ int8_t rpc_calc_add(int32_t a, int32_t b, int32_t* c) {
   int8_t _rpc_ret_val;
   memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
 
-  MessageWriter_begin();
-  MessageWriter_writeUInt16(RPC_OP_INVOKE);
-  MessageWriter_writeUInt16(RPC_UID_CALC_ADD);
-  MessageWriter_writeUInt16(++_rpc_seq);
-
-  /* Serialize inputs */
+  /* Send request */
+  const uint16_t _rpc_seq = MessageWriter_beginInvoke(RPC_UID_CALC_ADD);
   MessageWriter_writeInt32(a);
   MessageWriter_writeInt32(b);
   MessageWriter_end();
 
+  /* Wait response */
   MessageBuffer _rsp_buff;
   MessageBuffer_init(&_rsp_buff, NULL, 0);
   _rpc_res = rpc_wait_result(_rpc_seq, &_rsp_buff, RPC_TIMEOUT_DEFAULT);
