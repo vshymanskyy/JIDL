@@ -163,13 +163,17 @@ tmpl_handler_func = jinja.from_string("""
 
 static
 void rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) {
+{% if not attr_oneway %}
+  uint16_t _rpc_seq;
+  MessageBuffer_readUInt16(_rpc_buff, &_rpc_seq);
+{% endif %}
 {% if deserialize_args|length > 0 %}
   /* Deserialize arguments */
   {{deserialize_args|join('\n  ')}}
 
   if (MessageBuffer_getError(_rpc_buff) || MessageBuffer_availableToRead(_rpc_buff)) {
 {% if not attr_oneway %}
-    MessageWriter_writeUInt8(RPC_STATUS_ERROR_ARGS_R);
+    MessageWriter_sendResultStatus(_rpc_seq, RPC_STATUS_ERROR_ARGS_R);
 {% endif %}
     return;
   }
@@ -183,11 +187,12 @@ void rpc_{{interface_name}}_{{function_name}}_handler(MessageBuffer* _rpc_buff) 
 {% endif %}
 
 {% if not attr_oneway %}
-  MessageWriter_writeUInt8(RPC_STATUS_OK);
+  MessageWriter_beginResult(_rpc_seq, RPC_STATUS_OK);
 {% if serialize_args|length > 0 %}
   /* Serialize outputs */
   {{serialize_args|join('\n  ')}}
 {% endif %}
+  MessageWriter_end();
 {% endif %}
 }
 """)

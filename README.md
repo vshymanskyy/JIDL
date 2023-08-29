@@ -61,23 +61,26 @@ int8_t rpc_calc_add_impl(int32_t a, int32_t b, int32_t* c);
 
 static
 void rpc_calc_add_handler(MessageBuffer* _rpc_buff) {
+  uint16_t _rpc_seq;
+  MessageBuffer_readUInt16(_rpc_buff, &_rpc_seq);
   /* Deserialize arguments */
   int32_t a; MessageBuffer_readInt32(_rpc_buff, &a);
   int32_t b; MessageBuffer_readInt32(_rpc_buff, &b);
   int32_t c; memset(&c, 0, sizeof(c)); /* output */
 
   if (MessageBuffer_getError(_rpc_buff) || MessageBuffer_availableToRead(_rpc_buff)) {
-    MessageWriter_writeUInt8(RPC_STATUS_ERROR_ARGS_R);
+    MessageWriter_sendResultStatus(_rpc_seq, RPC_STATUS_ERROR_ARGS_R);
     return;
   }
 
   /* Call the actual function */
   int8_t _rpc_ret_val = rpc_calc_add_impl(a, b, &c);
 
-  MessageWriter_writeUInt8(RPC_STATUS_OK);
+  MessageWriter_beginResult(_rpc_seq, RPC_STATUS_OK);
   /* Serialize outputs */
   MessageWriter_writeInt32(c);
   MessageWriter_writeInt8(_rpc_ret_val);
+  MessageWriter_end();
 }
 
 /*
