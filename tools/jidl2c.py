@@ -25,8 +25,8 @@ ctypes = {
   "UInt64":   "uint64_t",
   "Float32":  "float",
   "Float64":  "double",
-  "Binary":   "buffer_t",
   "String":   "const char*",
+  "Binary":   "rpc_buffer_t",
 }
 
 def c_type(t):
