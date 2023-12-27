@@ -59,6 +59,10 @@ def skip_attrs(d):
 #
 
 tmpl_shim_func = jinja.from_string("""
+{%- if attr_doc %}
+/*
+ * {{ attr_doc|join('\n * ') }}
+ */{% endif %}
 {{- function_attrs|join(' ') }}
 static inline
 {{function_ret}} rpc_{{interface_name}}_{{function_name}}({{ func_args|join(', ') }}) {
@@ -115,10 +119,15 @@ def gen_client_shim(interface_name, function_name, function):
     deserialize_args = []
     function_attrs = []
 
+    attr_doc = []
+    if '@doc' in function:
+        attr_doc.append(function['@doc'])
+
     for arg in function["args"]:
         arg_name = arg["name"]
         arg_type = arg["type"]
         arg_dir  = arg["@dir"]
+        arg_doc  = arg.get("@doc", None)
         if arg_dir == "in":
             func_args.append(f"{c_type(arg)} {arg_name}")
             serialize_args.append(call_ser("_rpc_buff", "&", arg_type, arg_name))
@@ -129,6 +138,9 @@ def gen_client_shim(interface_name, function_name, function):
             func_args.append(f"{c_type(arg)}* {arg_name}")
             serialize_args.append(call_ser("_rpc_buff", "&", arg_type, arg_name))
             deserialize_args.append(call_deser("_rsp_buff", "&", arg_type, arg_name))
+
+        if arg_doc:
+            attr_doc.append(f"  {arg_name} - {arg_doc}")
 
     if not len(func_args):
         func_args.append("void")
@@ -268,6 +280,8 @@ def gen_c(idl):
         server_handlers = []
 
         for function_name, function in skip_attrs(interface).items():
+            if function.get("@skip", False):
+                continue
             client_shims.append(
                 gen_client_shim(interface_name, function_name, function)
             )
