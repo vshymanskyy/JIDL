@@ -66,11 +66,11 @@ static inline
   RpcStatus _rpc_res;
 {% endif %}
 {% if ret_type %}
-  /* Prepare return value */
   {{function_ret}} _rpc_ret_val;
   memset(&_rpc_ret_val, 0, sizeof(_rpc_ret_val));
 
 {% endif %}
+  RPC_MUTEX_LOCK();
   /* Send request */
 {% if attr_oneway %}
   MessageWriter_beginOneway(RPC_UID_{{interface_name|upper}}_{{function_name|upper}});
@@ -94,14 +94,17 @@ static inline
   }
   if (MessageBuffer_getError(&_rsp_buff) || MessageBuffer_availableToRead(&_rsp_buff)) {
     rpc_set_status(_rpc_res = RPC_STATUS_ERROR_RETS_R);
+    RPC_MUTEX_UNLOCK();
     {{ ret_statement }}
   }
 {% endif %}
 
   rpc_set_status(_rpc_res);
+  RPC_MUTEX_UNLOCK();
   {{ ret_statement }}
 {% else %}
   /* Oneway => skip response */
+  RPC_MUTEX_UNLOCK();
 {% endif %}
 }
 """)
